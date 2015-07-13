@@ -7,7 +7,10 @@
 //
 
 #import <UIKit/UIKit.h>
+#import <MapKit/MapKit.h>
+#import <CoreLocation/CoreLocation.h>
 
 @interface LocationMapView : UIViewController
-
+@property (nonatomic, strong)MKMapView *mapView;
+- (id)initWithLocation:(CLLocation *)location;
 @end

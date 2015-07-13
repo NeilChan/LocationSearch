@@ -9,10 +9,15 @@
 
 #import "SearchResultListViewController.h"
 #import "LocationSearchDisplayController.h"
+#import "LocationMapView.h"
 
 #import "LocationSearchBar.h"
 
 #import "KVNProgress.h"
+#import "AFHTTPRequestOperationManager.h"
+
+
+#define SEARCH_GOOGLE @"https://maps.googleapis.com/maps/api/place/search/json?location=31.000038,118.750719&radius=1000&types=%@&sensor=true&key=AIzaSyALaqx0MfPsp2aldbZbzEQAq64SwgQfZ0c"
 
 @interface SearchResultListViewController ()<CLLocationManagerDelegate>
 {
@@ -66,7 +71,10 @@
     
     //
     _geocoder = [[CLGeocoder alloc]init];
-    [self getAddressByLocation:[[CLLocation alloc]initWithLatitude:31.000038 longitude:118.750719]];
+    
+    [self getAddressByLocation:[[CLLocation alloc]initWithLatitude:23.13394716 longitude:113.35326433]];
+    [self getCoordinateByAddress:@"广州市安普瑞达汽车维修服务中心"];
+    
 }
 
 /**
@@ -100,8 +108,27 @@
         _locationManager.desiredAccuracy = kCLLocationAccuracyBest;
         _locationManager.distanceFilter = 1.0;
         
+        if([_locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)]) {
+            [_locationManager requestWhenInUseAuthorization];
+        }
         [_locationManager startUpdatingLocation];
     }
+    
+}
+
+- (void)getData {
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    
+    manager.responseSerializer = [[AFJSONResponseSerializer alloc]init];
+    manager.responseSerializer.acceptableContentTypes = [manager.responseSerializer.acceptableContentTypes setByAddingObject:@"text/plain"];
+    
+    [manager POST:@"http://www.baidu.com"
+      parameters:nil
+         success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"JSON: %@", responseObject);
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        NSLog(@"Error: %@", error);
+    }];
     
 }
 
@@ -166,14 +193,14 @@
  *  @return 地名
  */
 - (void)getAddressByLocation:(CLLocation *)location {
-    NSMutableArray *placemarkArr = [[NSMutableArray alloc]init];
     [_geocoder reverseGeocodeLocation:location
                     completionHandler:^(NSArray *placemarks, NSError *error) {
-                        [placemarkArr addObjectsFromArray:placemarks];
                         [self getPlacemark:placemarks[0]];
                         if (placemarks.count == 0)
                             [KVNProgress showErrorWithStatus:[NSString stringWithFormat:@"%@",NSLocalizedString(@"无法定位到所在地点", @"I don't know where are you")]];
                     }];
+    LocationMapView *map = [[LocationMapView alloc]initWithLocation:location];
+    [self.navigationController pushViewController:map animated:YES];
 }
 
 - (void) getPlacemark:(CLPlacemark *)placemark {
@@ -184,9 +211,15 @@
     [_geocoder geocodeAddressString:address
                   completionHandler:^(NSArray *placemarks, NSError *error) {
                       for (CLPlacemark *placemark in placemarks) {
+                          if (placemarks.count ==  0) {
+                              NSLog(@"fuck");
+                          }
                           NSLog(@"%@",placemark.addressDictionary);
+                          NSLog(@"%@  %@  %@  %@",placemark.thoroughfare, placemark.subAdministrativeArea,placemark.subThoroughfare,placemark.postalCode);
                       }
                   }];
+    
+    
 }
 
 @end
