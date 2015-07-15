@@ -8,6 +8,14 @@
 
 #import <UIKit/UIKit.h>
 
-@interface SearchResultListViewController : UITableViewController
+typedef enum{
+    SearchType_Normal,
+    SearchType_HousingEstate,
+    SearchType_hospital,
+    SearchType_Kindergarden,
+    SearchType_PrimarySchool
+}SearchType;
 
+@interface SearchResultListViewController : UITableViewController
+@property(nonatomic, assign)SearchType searchType;
 @end

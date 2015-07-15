@@ -7,6 +7,10 @@
 //
 
 #import "LocationMapView.h"
+#import "AFHTTPRequestOperationManager.h"
+
+#define GD_API_GET_FROM_KEYWORD @"http://m.amap.com/?k=高德"
+#define TEST_URL @"http://m.amap.com/?q=31.234527,121.287689&name=park"
 
 @interface LocationMapView ()<CLLocationManagerDelegate,MKMapViewDelegate>
 {
@@ -105,8 +109,68 @@
 - (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation {
     CLLocationCoordinate2D loc = [userLocation coordinate];
     NSLog(@"%lf  %lf",loc.latitude, loc.longitude);
+    struct RadiusLocation radius = [self setRadiusLocation:loc];
+    NSLog(@"%lf  %lf  %lf  %lf",radius.maxLatitude, radius.maxLongitude, radius.minLatitude, radius.minLongitude);
     MKCoordinateRegion region = MKCoordinateRegionMakeWithDistance(loc, 250, 250);
     [_mapView setRegion:region animated:YES];
+    
+    CLLocation *newLoc = userLocation.location;
+    CLGeocoder *geocoder = [[CLGeocoder alloc]init];
+    
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    manager.responseSerializer = [[AFJSONResponseSerializer alloc]init];
+    //http请求头应该添加text/plain。接受类型内容无text/plain
+    manager.responseSerializer.acceptableContentTypes = [manager.responseSerializer.acceptableContentTypes setByAddingObject:@"text/plain"];
+    [manager POST:TEST_URL
+      parameters:nil
+         success:^(AFHTTPRequestOperation *operation, id responserObject){
+
+             NSLog(@"%@",responserObject);
+         }failure:^(AFHTTPRequestOperation *operation, NSError *error){
+
+         }];
+    
+    /*
+    for (CLLocationDegrees i = radius.minLatitude; i < radius.maxLatitude; i += 0.001) {
+        for (CLLocationDegrees j = radius.minLongitude; j < radius.maxLongitude; j += 0.001) {
+            NSLog(@"%lf  %lf",i, j);
+            newLoc = [[CLLocation alloc]initWithLatitude:i longitude:j];
+        CLGeocoder *geocoder = [[CLGeocoder alloc]init];
+        [geocoder reverseGeocodeLocation:newLoc completionHandler:^(NSArray *placemarks, NSError *error) {
+            if (placemarks.count > 0){
+            CLPlacemark *placemark = placemarks[0];
+            NSLog(@"-----this in locaitonMapview------%@",placemark.addressDictionary);
+            NSLog(@"%@  %@  %@  %@",placemark.thoroughfare, placemark.subAdministrativeArea,placemark.subThoroughfare,placemark.postalCode);
+            }
+        }];
+    }
+    }
+     */
+}
+
+/**
+ *  @author Chan
+ *
+ *  @brief  计算并返回以该经纬度为中心点的1km半径内的最大／最小经纬度
+ *
+ *  @param loc 需要计算的经纬度
+ *
+ *  @return 返回一个结构体RadiusLocation：其中包含四个值为所求最大／最小经纬度
+ */
+- (struct RadiusLocation)setRadiusLocation:(CLLocationCoordinate2D)loc{
+    //1代表1km. 相应的n km范围就*n
+    CGFloat range = 180 / M_PI * 1/ 6372.797;
+    
+    CGFloat ingR = range / cos(loc.latitude * M_PI / 180);
+    
+    CLLocationDegrees maxLat = loc.latitude + range;
+    CLLocationDegrees maxLong = loc.longitude + ingR;
+    CLLocationDegrees minLat = loc.latitude - range;
+    CLLocationDegrees minLong = loc.longitude - ingR;
+    
+    struct RadiusLocation radiusLocation = {maxLat, maxLong, minLat, minLong};
+    
+    return radiusLocation;
 }
 
 /*
