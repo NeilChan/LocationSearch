@@ -9,8 +9,6 @@
 
 #import "SearchResultListViewController.h"
 #import "LocationSearchDisplayController.h"
-#import "LocationMapView.h"
-
 #import "LocationSearchBar.h"
 
 #import "KVNProgress/KVNProgress.h"
@@ -72,6 +70,24 @@
         
         //地图注册APIKey
         [MAMapServices sharedServices].apiKey = @"f5acc5b718535cfa7b542b06352613c3";
+        
+        //初始化高德地图搜索对象
+        [self initGDSearchAndMapViewObj];
+        
+    }
+    
+    return self;
+}
+
+- (id)initWithApiKey:(NSString *)apiKey andStyle:(UITableViewStyle)style{
+    self = [super initWithStyle:style];
+    
+    if (self) {
+        //初始化显示数组
+        _filterArr = [[NSArray alloc]init];
+        
+        //地图注册APIKey
+        [MAMapServices sharedServices].apiKey = apiKey;
         
         //初始化高德地图搜索对象
         [self initGDSearchAndMapViewObj];
@@ -273,8 +289,6 @@
             //停止定位
             _mapView_GD.showsUserLocation = NO;
         }
-        
-        self.isNormalSearch = true;
     }
 }
 
