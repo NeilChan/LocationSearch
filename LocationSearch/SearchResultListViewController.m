@@ -70,6 +70,11 @@
         //初始化显示数组
         _filterArr = [[NSArray alloc]init];
         
+        //地图注册APIKey
+        [MAMapServices sharedServices].apiKey = @"f5acc5b718535cfa7b542b06352613c3";
+        
+        //初始化高德地图搜索对象
+        [self initGDSearchAndMapViewObj];
         
     }
     
@@ -81,14 +86,27 @@
     
     [self setSearchDisplayController];
     
-    //地图注册APIKey
-    [MAMapServices sharedServices].apiKey = @"f5acc5b718535cfa7b542b06352613c3";
-    
-    //初始化高德地图搜索对象
-    [self initGDSearchAndMapViewObj];
-    
-    //进行系统自带定位
+    //进行系统自带定位-----暂不使用，作废
     //[self openLocationServices];
+    
+}
+
+- (void)initGDSearchAndMapViewObj {
+    //_lazy load
+    if (_mapView_GD == nil) {
+        _mapView_GD = [[MAMapView alloc]init];
+        _mapView_GD.delegate = self;
+        
+        //打开系统定位功能。但回调使用高德地图SDK，与系统坐标系有偏移
+        _mapView_GD.showsUserLocation = YES;
+    }
+    
+    //_lazy load
+    if (_searchObj_GD == nil) {
+        _searchObj_GD = [[AMapSearchAPI alloc]initWithSearchKey:@"f5acc5b718535cfa7b542b06352613c3" Delegate:self];
+        //设置搜索返回语言，可选中／英文
+        _searchObj_GD.language = AMapSearchLanguage_zh_CN;
+    }
     
 }
 
@@ -110,27 +128,35 @@
     
 }
 
-- (void)setLocationArr:(NSArray *)locationArr {
-    _locationArr = locationArr;
+- (void)setIsNormalSearch:(BOOL)isNormalSearch {
+    _isNormalSearch = isNormalSearch;
+    
+    //如果不是正常搜索，则不处理
+    if (isNormalSearch == false) {
+        return;
+    }
+    
+    if (_currCoordinate2D.latitude && _currCoordinate2D.longitude) {
+        [self searchWithLocation:_currCoordinate2D];
+    }else {
+        _mapView_GD.showsUserLocation = YES;
+        [KVNProgress show];
+    }
 }
 
-- (void)initGDSearchAndMapViewObj {
-    //_lazy load
-    if (_mapView_GD == nil) {
-        _mapView_GD = [[MAMapView alloc]init];
-        _mapView_GD.delegate = self;
-        
-        //打开系统定位功能。但回调使用高德地图SDK，与系统坐标系有偏移
-        _mapView_GD.showsUserLocation = YES;
+- (void)setKeyword:(NSString *)keyword {
+    _keyword = keyword;
+    
+    if (!keyword) {
+        [KVNProgress showError];
+        return;
     }
     
-    //_lazy load
-    if (_searchObj_GD == nil) {
-        _searchObj_GD = [[AMapSearchAPI alloc]initWithSearchKey:@"f5acc5b718535cfa7b542b06352613c3" Delegate:self];
-        //设置搜索返回语言，可选中／英文
-        _searchObj_GD.language = AMapSearchLanguage_zh_CN;
+    if ([keyword isEqualToString:@""]){
+        [self setIsNormalSearch:true];
+    }else {
+        [self searchWithKeyword:keyword andLocation:_currCoordinate2D];
     }
-    
 }
 
 /**
@@ -154,24 +180,6 @@
 /**
  *  @author Chan
  *
- *  @brief  根据地名获得坐标
- *
- *  @param address 详细地址
- *  @param city    城市
- */
-- (void)getGeocode:(NSString *)address City:(NSString *)city{
-    AMapGeocodeSearchRequest *geocodeRequest = [[AMapGeocodeSearchRequest alloc]init];
-    
-    geocodeRequest.searchType = AMapSearchType_Geocode;
-    geocodeRequest.address = address;
-    geocodeRequest.city = @[city];
-    
-    [_searchObj_GD AMapGeocodeSearch:geocodeRequest];
-}
-
-/**
- *  @author Chan
- *
  *  @brief  获得输入提示
  *
  *  @param keyword 输入的关键词
@@ -190,13 +198,22 @@
 }
 
 
+/**
+ *  @author Chan
+ *
+ *  @brief  根据keyword跟地理坐标返回搜索内容
+ *
+ *  @param keyword      搜索内容
+ *  @param coordinate2D 用户坐标
+ */
 - (void)searchWithKeyword:(NSString *)keyword andLocation:(CLLocationCoordinate2D)coordinate2D {
     
     if (!_poiRequest) {
         _poiRequest = [[AMapPlaceSearchRequest alloc]init];
         _poiRequest.searchType = AMapSearchType_PlaceAround;
-        
     }
+    
+    if (!coordinate2D.longitude && !coordinate2D.latitude) {NSLog(@"coordinate haven't load.");return;}
     
     _poiRequest.location = [AMapGeoPoint locationWithLatitude:coordinate2D.latitude
                                                     longitude:coordinate2D.longitude];
@@ -207,12 +224,30 @@
     
 }
 
+
+- (void)searchWithLocation:(CLLocationCoordinate2D)coordinate2D {
+    
+    if (!_poiRequest) {
+        _poiRequest = [[AMapPlaceSearchRequest alloc]init];
+        _poiRequest.searchType = AMapSearchType_PlaceAround;
+    }
+    
+    _poiRequest.location = [AMapGeoPoint locationWithLatitude:coordinate2D.latitude
+                                                    longitude:coordinate2D.longitude];
+    _poiRequest.keywords = @"餐饮服务|汽车服务|汽车销售|汽车维修|摩托车服务|购物服务|生活服务|体育休闲服务|医疗保健服务|住宿服务|风景名胜|商务住宅|政府机构及社会团体|科教文化服务|交通设施服务|金融保险服务|公司企业|道路附属设施|地名地址信息|公共设施";
+    _poiRequest.requireExtension = YES;
+    _poiRequest.sortrule = 1;
+    
+    
+    [_searchObj_GD AMapPlaceSearch:_poiRequest];
+}
+
 - (void)filterData:(NSString *)searchStr{
     
     NSPredicate *predicate = [NSPredicate predicateWithFormat:@"name CONTAINS %@", searchStr];
     
     _filterArr = [_locationArr filteredArrayUsingPredicate:predicate];
-    NSLog(@"After filtering, the data is :%ld", _filterArr.count);
+
     dispatch_async(dispatch_get_main_queue(), ^{
         [_locationSearchDisplayController.searchResultsTableView reloadData];
     });
@@ -235,25 +270,16 @@
         if (result.addressComponent.city) {
             _city = result.addressComponent.city;
             
-            if (result.addressComponent.district)
-                [self getGeocode:result.addressComponent.district City:_city];
-
             //停止定位
             _mapView_GD.showsUserLocation = NO;
         }
+        
+        self.isNormalSearch = true;
     }
-}
-
-- (void)onGeocodeSearchDone:(AMapGeocodeSearchRequest *)request response:(AMapGeocodeSearchResponse *)response {
-    if (response.geocodes != nil) {
-        AMapGeocode *geocode = response.geocodes[0];
-        _currCoordinate2D = CLLocationCoordinate2DMake(geocode.location.latitude, geocode.location.longitude);
-    }
-    
-    [self searchWithKeyword:@"住宅小区" andLocation:_currCoordinate2D];
 }
 
 - (void)onInputTipsSearchDone:(AMapInputTipsSearchRequest *)request response:(AMapInputTipsSearchResponse *)response {
+    
     if (response.tips.count == 0) {
         _filterArr = [[NSArray alloc]init];
         return;
@@ -268,13 +294,15 @@
 }
 
 - (void)onPlaceSearchDone:(AMapPlaceSearchRequest *)request response:(AMapPlaceSearchResponse *)response {
-    
+    NSLog(@"on place done");
     if(response.pois.count == 0)
     {
         return;
     }
     
     _locationArr = response.pois;
+    
+   
     
     //刷新界面如果放到searchDisplayController里面自动刷新会慢一拍
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -294,6 +322,8 @@
         
         //如果获取到定位经纬度，则反编码获取地名
         [self getReGeocode:userLocation.coordinate];
+        
+        [KVNProgress dismiss];
     }
 }
 
@@ -341,14 +371,21 @@
 
 - (BOOL)searchDisplayController:(UISearchDisplayController *)controller shouldReloadTableForSearchString:(NSString *)searchString {
     
-    [self filterData:searchString];
+    if (_isNormalSearch == false) {
+        [self filterData:searchString];
+    }else {
+        [self getInputTips:searchString];
+    }
     
     //不在此刷新，因为数据可能不出来
     return NO;
 }
 
 
-//--------------------------暂不使用系统定位功能，保持坐标数据一致性全部使用高德地图API处理----------------------------------//
+
+
+
+//--------------------------暂不使用系统定位功能，保持坐标数据一致性全部使用高德地图API处理----------------------------------
 
 /**
  *  @author Chan
@@ -469,6 +506,39 @@
     
     
 }
+
+
+
+
+//---------------------------暂不进行定位模糊修正，按照高德SDK标准用法使用--------------------------------------------
+
+/**
+ *  @author Chan
+ *
+ *  @brief  根据地名获得坐标
+ *
+ *  @param address 详细地址
+ *  @param city    城市
+ */
+- (void)getGeocode:(NSString *)address City:(NSString *)city{
+    AMapGeocodeSearchRequest *geocodeRequest = [[AMapGeocodeSearchRequest alloc]init];
+    
+    geocodeRequest.searchType = AMapSearchType_Geocode;
+    geocodeRequest.address = address;
+    geocodeRequest.city = @[city];
+    
+    [_searchObj_GD AMapGeocodeSearch:geocodeRequest];
+}
+
+- (void)onGeocodeSearchDone:(AMapGeocodeSearchRequest *)request response:(AMapGeocodeSearchResponse *)response {
+    if (response.geocodes != nil) {
+        AMapGeocode *geocode = response.geocodes[0];
+        _currCoordinate2D = CLLocationCoordinate2DMake(geocode.location.latitude, geocode.location.longitude);
+    }
+    
+    [self searchWithKeyword:@"住宅小区" andLocation:_currCoordinate2D];
+}
+
 @end
 
 

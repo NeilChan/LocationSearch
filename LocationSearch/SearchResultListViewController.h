@@ -17,5 +17,7 @@ typedef enum{
 }SearchType;
 
 @interface SearchResultListViewController : UITableViewController
-@property(nonatomic, assign)SearchType searchType;
+@property (nonatomic, assign)BOOL isNormalSearch;
+@property (nonatomic, strong)NSString *keyword;
+
 @end
