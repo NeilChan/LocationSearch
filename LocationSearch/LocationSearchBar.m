@@ -28,7 +28,7 @@
 
 - (void)setStyle {
     self.barStyle = UIBarStyleDefault;
-    self.barTintColor = [UIColor colorWithRed:245/255.0f green:245/255.0f blue:245/255.0f alpha:0.5];
+    self.barTintColor = [UIColor colorWithRed:245/255.0f green:245/255.0f blue:245/255.0f alpha:0.1];
     self.tintColor = [UIColor orangeColor];
 }
 
