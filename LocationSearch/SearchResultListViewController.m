@@ -262,8 +262,6 @@
         //处理搜索结果
         AMapReGeocode *result = response.regeocode;
         
-        //NSLog(@"ReGeocode result: %@",result.addressComponent);
-        
         if (result.addressComponent.city) {
             _city = result.addressComponent.city;
             
@@ -297,7 +295,6 @@
     
     _locationArr = response.pois;
     
-   
     
     //刷新界面如果放到searchDisplayController里面自动刷新会慢一拍
     dispatch_async(dispatch_get_main_queue(), ^{
