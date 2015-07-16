@@ -67,9 +67,12 @@
     if (self) {
         //初始化显示数组
         _filterArr = [[NSArray alloc]init];
+        self.isNormalSearch = false;
+        self.keyword = nil;
         
         //地图注册APIKey
-        [MAMapServices sharedServices].apiKey = @"f5acc5b718535cfa7b542b06352613c3";
+        self.apiKey = @"f5acc5b718535cfa7b542b06352613c3";
+        [MAMapServices sharedServices].apiKey = self.apiKey;
         
         //初始化高德地图搜索对象
         [self initGDSearchAndMapViewObj];
@@ -85,9 +88,12 @@
     if (self) {
         //初始化显示数组
         _filterArr = [[NSArray alloc]init];
+        self.isNormalSearch = false;
+        self.keyword = nil;
         
         //地图注册APIKey
         [MAMapServices sharedServices].apiKey = apiKey;
+        self.apiKey = apiKey;
         
         //初始化高德地图搜索对象
         [self initGDSearchAndMapViewObj];
@@ -105,6 +111,8 @@
     //进行系统自带定位-----暂不使用，作废
     //[self openLocationServices];
     
+    
+    [KVNProgress show];
 }
 
 - (void)initGDSearchAndMapViewObj {
@@ -119,7 +127,7 @@
     
     //_lazy load
     if (_searchObj_GD == nil) {
-        _searchObj_GD = [[AMapSearchAPI alloc]initWithSearchKey:@"f5acc5b718535cfa7b542b06352613c3" Delegate:self];
+        _searchObj_GD = [[AMapSearchAPI alloc]initWithSearchKey:self.apiKey Delegate:self];
         //设置搜索返回语言，可选中／英文
         _searchObj_GD.language = AMapSearchLanguage_zh_CN;
     }
@@ -144,37 +152,6 @@
     
 }
 
-- (void)setIsNormalSearch:(BOOL)isNormalSearch {
-    _isNormalSearch = isNormalSearch;
-    
-    //如果不是正常搜索，则不处理
-    if (isNormalSearch == false) {
-        return;
-    }
-    
-    if (_currCoordinate2D.latitude && _currCoordinate2D.longitude) {
-        [self searchWithLocation:_currCoordinate2D];
-    }else {
-        _mapView_GD.showsUserLocation = YES;
-        [KVNProgress show];
-    }
-}
-
-- (void)setKeyword:(NSString *)keyword {
-    _keyword = keyword;
-    
-    if (!keyword) {
-        [KVNProgress showError];
-        return;
-    }
-    
-    if ([keyword isEqualToString:@""]){
-        [self setIsNormalSearch:true];
-    }else {
-        [self searchWithKeyword:keyword andLocation:_currCoordinate2D];
-    }
-}
-
 /**
  *  @author Chan
  *
@@ -189,7 +166,6 @@
     reGeocodeRequest.location = [AMapGeoPoint locationWithLatitude:location.latitude longitude:location.longitude];
     reGeocodeRequest.radius = 10000;
     reGeocodeRequest.requireExtension = YES;
-    
     [_searchObj_GD AMapReGoecodeSearch:reGeocodeRequest];
 }
 
@@ -223,6 +199,11 @@
  *  @param coordinate2D 用户坐标
  */
 - (void)searchWithKeyword:(NSString *)keyword andLocation:(CLLocationCoordinate2D)coordinate2D {
+    
+    if ([keyword isEqualToString:@""]){
+        [self setIsNormalSearch:true];
+        return;
+    }
     
     if (!_poiRequest) {
         _poiRequest = [[AMapPlaceSearchRequest alloc]init];
@@ -329,15 +310,27 @@
 #pragma mark - MAMapViewDelegate
 
 - (void)mapView:(MAMapView *)mapView didUpdateUserLocation:(MAUserLocation *)userLocation updatingLocation:(BOOL)updatingLocation {
+    
     if (userLocation) {
-        //NSLog(@"I was in the mapView_GD latitude : %f ,longitude : %f", userLocation.coordinate.latitude, userLocation.coordinate.longitude);
+        NSLog(@"I was in the mapView_GD latitude : %f ,longitude : %f", userLocation.coordinate.latitude, userLocation.coordinate.longitude);
         
         _currCoordinate2D = userLocation.coordinate;
         
         //如果获取到定位经纬度，则反编码获取地名
         [self getReGeocode:userLocation.coordinate];
         
+        //
+        if (self.isNormalSearch == true) {
+            [self searchWithLocation:_currCoordinate2D];
+        }
+        else if(self.keyword) {
+            [self searchWithKeyword:self.keyword andLocation:_currCoordinate2D];
+        }
+        
         [KVNProgress dismiss];
+    }
+    else {
+        [KVNProgress showErrorWithStatus:[NSString stringWithFormat:@"%@",NSLocalizedString(@"无法定位到所在位置", @"Can't access your location")]];
     }
 }
 

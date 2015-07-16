@@ -19,5 +19,5 @@ typedef enum{
 @interface SearchResultListViewController : UITableViewController
 @property (nonatomic, assign)BOOL isNormalSearch;
 @property (nonatomic, strong)NSString *keyword;
-
+@property (nonatomic, copy)NSString *apiKey;
 @end
