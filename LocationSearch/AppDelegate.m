@@ -26,7 +26,7 @@
     
     SearchResultListViewController *search = [[SearchResultListViewController alloc]initWithStyle:UITableViewStylePlain];
     
-    search.keyword = @"幼儿园";
+    search.isNormalSearch = YES;
     
     UINavigationController *nav = [[UINavigationController alloc]initWithRootViewController:search];
     
