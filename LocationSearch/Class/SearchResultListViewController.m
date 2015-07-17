@@ -12,7 +12,6 @@
 #import "LocationSearchBar.h"
 
 #import "KVNProgress.h"
-#import "AFHTTPRequestOperationManager.h"
 
 //接入高德地图SDK
 #import <AMapSearchKit/AMapSearchAPI.h>
