@@ -20,4 +20,6 @@ typedef enum{
 @property (nonatomic, assign)BOOL isNormalSearch;
 @property (nonatomic, strong)NSString *keyword;
 @property (nonatomic, copy)NSString *apiKey;
+
+@property (nonatomic, assign)NSInteger radius;
 @end
