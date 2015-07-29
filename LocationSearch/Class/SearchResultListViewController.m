@@ -207,7 +207,7 @@
     
     if (!_poiRequest) {
         _poiRequest = [[AMapPlaceSearchRequest alloc]init];
-        _poiRequest.searchType = AMapSearchType_PlaceAround;
+        _poiRequest.searchType = AMapSearchType_PlaceKeyword;
     }
     
     if (!coordinate2D.longitude && !coordinate2D.latitude) {NSLog(@"coordinate haven't load.");return;}
@@ -241,7 +241,9 @@
     
     
     [_searchObj_GD AMapPlaceSearch:_poiRequest];
+
 }
+
 
 - (void)filterData:(NSString *)searchStr{
     
@@ -252,6 +254,7 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         [_locationSearchDisplayController.searchResultsTableView reloadData];
     });
+    
 }
 
 - (void)didReceiveMemoryWarning {
@@ -292,18 +295,51 @@
 
 - (void)onPlaceSearchDone:(AMapPlaceSearchRequest *)request response:(AMapPlaceSearchResponse *)response {
     NSLog(@"on place done");
+    
     if(response.pois.count == 0)
     {
         return;
     }
     
+    
     _locationArr = response.pois;
+    
+    AMapPOI *poi = [self copyAMapPOI:_locationArr[0]];
+    poi.name = poi.address;
+
+    NSMutableArray *tmp = [[NSMutableArray alloc]initWithArray:_locationArr];
+    [tmp insertObject:poi atIndex:0];
+    
+    poi = [self copyAMapPOI:tmp[0]];
+    poi.name = poi.district;
+    [tmp insertObject:poi atIndex:0];
+    
+    poi = [self copyAMapPOI:tmp[0]];
+    poi.name = poi.city;
+    [tmp insertObject:poi atIndex:0];
+    
+    _locationArr = [tmp copy];
     
     
     //刷新界面如果放到searchDisplayController里面自动刷新会慢一拍
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.tableView reloadData];
     });
+}
+
+- (AMapPOI *)copyAMapPOI:(AMapPOI *)poi {
+    AMapPOI *poiCopy = [[AMapPOI alloc]init];
+    
+    poiCopy.name = [poi.name copy];
+    poiCopy.province = [poi.province copy];
+    poiCopy.district = [poi.district copy];
+    poiCopy.city = [poi.city copy];
+    poiCopy.address = [poi.address copy];
+    poiCopy.location.latitude = poi.location.latitude;
+    poiCopy.location.longitude = poi.location.longitude;
+    poiCopy.citycode = poi.citycode;
+
+    return poiCopy;
 }
 
 
@@ -371,6 +407,16 @@
     }
     
     return cell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    if (tableView == _locationSearchDisplayController.searchResultsTableView) {
+        NSInteger row = indexPath.row;
+        AMapTip *tip = _filterArr[indexPath.row];
+        [self getGeocode:tip.district adcode:tip.adcode];
+    }
+    
 }
 
 
@@ -526,25 +572,32 @@
  *  @brief  根据地名获得坐标
  *
  *  @param address 详细地址
- *  @param city    城市
+ *  @param adcode    城市编码
  */
-- (void)getGeocode:(NSString *)address City:(NSString *)city{
+- (void)getGeocode:(NSString *)address adcode:(NSString *)adcode{
+    if (address.length == 0) {
+        return;
+    }
+    
     AMapGeocodeSearchRequest *geocodeRequest = [[AMapGeocodeSearchRequest alloc]init];
     
     geocodeRequest.searchType = AMapSearchType_Geocode;
     geocodeRequest.address = address;
-    geocodeRequest.city = @[city];
+    geocodeRequest.city = @[adcode];
     
     [_searchObj_GD AMapGeocodeSearch:geocodeRequest];
 }
 
 - (void)onGeocodeSearchDone:(AMapGeocodeSearchRequest *)request response:(AMapGeocodeSearchResponse *)response {
-    if (response.geocodes != nil) {
-        AMapGeocode *geocode = response.geocodes[0];
-        _currCoordinate2D = CLLocationCoordinate2DMake(geocode.location.latitude, geocode.location.longitude);
+    
+    if(response.geocodes.count == 0){
+        return;
     }
     
-    [self searchWithKeyword:@"住宅小区" andLocation:_currCoordinate2D];
+    AMapGeocode *geocode = response.geocodes[0];
+    NSLog(@"%@",geocode);
+    _currCoordinate2D = CLLocationCoordinate2DMake(geocode.location.latitude, geocode.location.longitude);
+    
 }
 
 @end

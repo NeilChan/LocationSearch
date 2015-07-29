@@ -16,10 +16,14 @@ typedef enum{
     SearchType_PrimarySchool
 }SearchType;
 
+typedef void (^printBlockClass)(NSString *);
+
 @interface SearchResultListViewController : UITableViewController
 @property (nonatomic, assign)BOOL isNormalSearch;
 @property (nonatomic, strong)NSString *keyword;
 @property (nonatomic, copy)NSString *apiKey;
 
 @property (nonatomic, assign)NSInteger radius;
+
+@property (nonatomic, copy) void(^printBlockClass)(SearchResultListViewController * vc);
 @end

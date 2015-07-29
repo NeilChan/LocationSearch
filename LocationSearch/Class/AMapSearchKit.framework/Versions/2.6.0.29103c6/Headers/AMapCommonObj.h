@@ -14,7 +14,7 @@
 /*!
  @brief 经纬度
  */
-@interface AMapGeoPoint : NSObject<NSCopying>
+@interface AMapGeoPoint : NSObject
 
 @property (nonatomic, assign) CGFloat latitude;
 @property (nonatomic, assign) CGFloat longitude;
@@ -27,7 +27,7 @@
  @brief 多边形 
  当传入两个点的时候，当做矩形处理:左下-右上两个顶点；其他情况视为多边形，几个点即为几边型。
  */
-@interface AMapGeoPolygon : NSObject<NSCopying>
+@interface AMapGeoPolygon : NSObject
 
 @property (nonatomic, strong) NSArray *points;// 坐标集:AMapGeoPoint数组
 
@@ -326,7 +326,7 @@ extern NSString *const AMapDeepContentTypeCinema;
 /*!
  @brief POI
  */
-@interface AMapPOI : NSObject
+@interface AMapPOI : NSObject<NSCopying>
 
 // basic:
 @property (nonatomic, strong) NSString *uid; // POI全局唯一ID
