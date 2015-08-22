@@ -12,7 +12,7 @@
 #import "LocationSearchBar.h"
 
 #import "KVNProgress.h"
-
+#import "MJRefresh.h"
 //接入高德地图SDK
 #import <AMapSearchKit/AMapSearchAPI.h>
 #import <MAMapKit/MAMapKit.h>
@@ -25,11 +25,13 @@
     
     //---------------数据存放数组-------------------------
     //附近所有地点的数组
-    NSArray *_locationArr;
+    NSMutableArray *_locationArr;
     //按名称过滤后数组
     NSArray *_filterArr;
     //根据查询条件返回的数组
     NSArray *_searchArr;
+    //当前返回页数
+    NSInteger _currentPage;
     
     //当前定位城市
     NSString *_city;
@@ -66,6 +68,7 @@
     if (self) {
         //初始化显示数组
         _filterArr = [[NSArray alloc]init];
+        _currentPage = 1;
         self.isNormalSearch = false;
         self.keyword = nil;
         
@@ -87,6 +90,7 @@
     if (self) {
         //初始化显示数组
         _filterArr = [[NSArray alloc]init];
+        _currentPage = 1;
         self.isNormalSearch = false;
         self.keyword = nil;
         self.radius = 0;
@@ -107,11 +111,11 @@
     [super viewDidLoad];
     
     [self setSearchDisplayController];
+    [self addRefreshControl];
     
     //进行系统自带定位-----暂不使用，作废
     //[self openLocationServices];
-    
-    
+
     [KVNProgress show];
 }
 
@@ -150,6 +154,21 @@
     _locationSearchDisplayController.searchResultsDelegate = self;
     _locationSearchDisplayController.delegate = self;
     
+}
+
+- (void)addRefreshControl {
+    if(!self.tableView.footer){
+        self.tableView.footer = [MJRefreshBackNormalFooter footerWithRefreshingTarget:self refreshingAction:@selector(getMoreEvent)];
+    }
+}
+
+- (void)getMoreEvent {
+    [self getMoreData];
+}
+
+- (void)getMoreData {
+    _currentPage ++ ;
+    [self searchWithLocation:_currCoordinate2D];
 }
 
 /**
@@ -216,6 +235,7 @@
                                                     longitude:coordinate2D.longitude];
     _poiRequest.requireExtension = YES;
     _poiRequest.keywords = keyword;
+    _poiRequest.page = _currentPage;
     if (self.radius != 0)
         _poiRequest.radius = self.radius;
     
@@ -233,11 +253,15 @@
     
     _poiRequest.location = [AMapGeoPoint locationWithLatitude:coordinate2D.latitude
                                                     longitude:coordinate2D.longitude];
-    _poiRequest.keywords = @"餐饮服务|汽车服务|汽车销售|汽车维修|摩托车服务|购物服务|生活服务|体育休闲服务|医疗保健服务|住宿服务|风景名胜|商务住宅|政府机构及社会团体|科教文化服务|交通设施服务|金融保险服务|公司企业|道路附属设施|地名地址信息|公共设施";
+    _poiRequest.types = @[@"餐饮服务",@"汽车销售",@"购物服务",@"生活服务",@"体育休闲服务",@"医疗保健服务",@"住宿服务",@"风景名胜",@"商务住宅",@"科教文化服务",@"公司企业",@"政府机构及社会团体",@"金融保险服务"];
+   // _poiRequest.keywords = @"餐饮服务|汽车服务|汽车销售|汽车维修|摩托车服务|购物服务|生活服务|体育休闲服务|医疗保健服务|住宿服务|风景名胜|商务住宅|政府机构及社会团体|科教文化服务|交通设施服务|金融保险服务|公司企业|道路附属设施|地名地址信息";
+    _poiRequest.offset = 50;
+    _poiRequest.page = _currentPage;
     _poiRequest.requireExtension = YES;
     _poiRequest.sortrule = 1;
-    if (self.radius != 0)
-        _poiRequest.radius = self.radius;
+    _poiRequest.radius = 10000;
+//    if (self.radius != 0)
+//        _poiRequest.radius = self.radius;
     
     
     [_searchObj_GD AMapPlaceSearch:_poiRequest];
@@ -249,7 +273,7 @@
     
     NSPredicate *predicate = [NSPredicate predicateWithFormat:@"name CONTAINS %@", searchStr];
     
-    _filterArr = [_locationArr filteredArrayUsingPredicate:predicate];
+    _filterArr = [[_locationArr copy] filteredArrayUsingPredicate:predicate];
 
     dispatch_async(dispatch_get_main_queue(), ^{
         [_locationSearchDisplayController.searchResultsTableView reloadData];
@@ -294,36 +318,42 @@
 }
 
 - (void)onPlaceSearchDone:(AMapPlaceSearchRequest *)request response:(AMapPlaceSearchResponse *)response {
-    NSLog(@"on place done");
+    NSLog(@"on place done: %@",response.pois);
     
     if(response.pois.count == 0)
     {
+        [self.tableView.footer endRefreshing];
         return;
     }
     
-    
-    _locationArr = response.pois;
-    
-    AMapPOI *poi = [self copyAMapPOI:_locationArr[0]];
-    poi.name = poi.address;
+    if (!_locationArr || _locationArr.count == 0) {
+        _locationArr = [[NSMutableArray alloc]initWithArray:response.pois];
+    }else {
+        [_locationArr addObjectsFromArray:response.pois];
+    }
 
-    NSMutableArray *tmp = [[NSMutableArray alloc]initWithArray:_locationArr];
-    [tmp insertObject:poi atIndex:0];
-    
-    poi = [self copyAMapPOI:tmp[0]];
-    poi.name = poi.district;
-    [tmp insertObject:poi atIndex:0];
-    
-    poi = [self copyAMapPOI:tmp[0]];
-    poi.name = poi.city;
-    [tmp insertObject:poi atIndex:0];
-    
-    _locationArr = [tmp copy];
-    
-    
+    if (_currentPage == 1) {
+        AMapPOI *poi = [self copyAMapPOI:_locationArr[0]];
+        poi.name = poi.address;
+        
+        NSMutableArray *tmp = [[NSMutableArray alloc]initWithArray:[_locationArr copy]];
+        [tmp insertObject:poi atIndex:0];
+        
+        poi = [self copyAMapPOI:tmp[0]];
+        poi.name = poi.district;
+        [tmp insertObject:poi atIndex:0];
+        
+        poi = [self copyAMapPOI:tmp[0]];
+        poi.name = poi.city;
+        [tmp insertObject:poi atIndex:0];
+        
+        _locationArr = [[NSMutableArray alloc]initWithArray:[tmp copy]];
+    }
+
     //刷新界面如果放到searchDisplayController里面自动刷新会慢一拍
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.tableView reloadData];
+        [self.tableView.footer endRefreshing];
     });
 }
 
@@ -417,6 +447,12 @@
         [self getGeocode:tip.district adcode:tip.adcode];
     }
     
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (indexPath.row == _locationArr.count - 10) {
+        [self getMoreEvent];
+    }
 }
 
 
