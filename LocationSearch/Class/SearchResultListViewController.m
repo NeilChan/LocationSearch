@@ -235,9 +235,13 @@
                                                     longitude:coordinate2D.longitude];
     _poiRequest.requireExtension = YES;
     _poiRequest.keywords = keyword;
+    _poiRequest.offset = 50;
     _poiRequest.page = _currentPage;
-    if (self.radius != 0)
-        _poiRequest.radius = self.radius;
+    _poiRequest.requireExtension = YES;
+    _poiRequest.sortrule = 1;
+    _poiRequest.radius = 10000;
+//    if (self.radius != 0)
+//        _poiRequest.radius = self.radius;
     
     [_searchObj_GD AMapPlaceSearch:_poiRequest];
     
