@@ -10,6 +10,7 @@
 #import "SearchResultListViewController.h"
 #import "LocationSearchDisplayController.h"
 #import "LocationSearchBar.h"
+#import "MapViewBaseController.h"
 
 #import "KVNProgress.h"
 #import "MJRefresh.h"
@@ -73,7 +74,7 @@
         self.keyword = nil;
         
         //地图注册APIKey
-        self.apiKey = @"f5acc5b718535cfa7b542b06352613c3";
+        self.apiKey = GDMAP_SDK_API_KEY;
         [MAMapServices sharedServices].apiKey = self.apiKey;
         
         //初始化高德地图搜索对象
@@ -449,6 +450,11 @@
         NSInteger row = indexPath.row;
         AMapTip *tip = _filterArr[indexPath.row];
         [self getGeocode:tip.district adcode:tip.adcode];
+    }else if(tableView == self.tableView) {
+        AMapPOI *poi = _locationArr[indexPath.row];
+        CLLocation *location = [[CLLocation alloc]initWithLatitude:poi.location.latitude longitude:poi.location.longitude];
+        MapViewBaseController *mapVC = [[MapViewBaseController alloc]initWithCCLocation:location];
+        [self.navigationController pushViewController:mapVC animated:YES];
     }
     
 }

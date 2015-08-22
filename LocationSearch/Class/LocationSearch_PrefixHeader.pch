@@ -1,0 +1,13 @@
+//
+//  PrefixHeader.pch
+//  LocationSearch
+//
+//  Created by 我的宝宝 on 15/8/22.
+//  Copyright (c) 2015年 Caesar. All rights reserved.
+//
+
+#ifdef __OBJC__
+
+#define GDMAP_SDK_API_KEY @"f5acc5b718535cfa7b542b06352613c3"
+
+#endif
