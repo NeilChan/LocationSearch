@@ -24,7 +24,7 @@
     
     LocationSearchDisplayController *_locationSearchDisplayController;
     
-    //---------------数据存放数组-------------------------
+    //---------------数据存放-------------
     //附近所有地点的数组
     NSMutableArray *_locationArr;
     //按名称过滤后数组
@@ -33,7 +33,6 @@
     NSArray *_searchArr;
     //当前返回页数
     NSInteger _currentPage;
-    
     //当前定位城市
     NSString *_city;
     //当前定位地点
@@ -51,27 +50,18 @@
     //高德地图对象-----不需要显示，只提供精确定位功能。系统自带定位坐标系与高德地图定位坐标系有偏移
     MAMapView *_mapView_GD;
 
-    
-
-    //---------------系统自带定位管理, 暂不使用---------------
-    //系统自带定位管理
+    //系统自带定位管理，检测是否系统定位／本应用定位可用
     CLLocationManager *_locationManager;
-    //系统地理编码转换
-    CLGeocoder *_geocoder;
 }
 @end
 
 @implementation SearchResultListViewController
 
-- (id)initWithStyle:(UITableViewStyle)style {
+- (id)initWithStyle:(UITableViewStyle)style
+{
     self = [super initWithStyle:style];
     
     if (self) {
-        //初始化显示数组
-        _filterArr = [[NSArray alloc]init];
-        _currentPage = 1;
-        self.isNormalSearch = false;
-        self.keyword = nil;
         
         //地图注册APIKey
         self.apiKey = GDMAP_SDK_API_KEY;
@@ -85,18 +75,11 @@
     return self;
 }
 
-- (id)initWithApiKey:(NSString *)apiKey andStyle:(UITableViewStyle)style{
+- (id)initWithApiKey:(NSString *)apiKey andStyle:(UITableViewStyle)style
+{
     self = [super initWithStyle:style];
-    
-    if (self) {
-        //初始化显示数组
-        _filterArr = [[NSArray alloc]init];
-        _currentPage = 1;
-        self.isNormalSearch = false;
-        self.keyword = nil;
-        self.radius = 0;
-        
-        //地图注册APIKey
+    if (self)
+    {
         [MAMapServices sharedServices].apiKey = apiKey;
         self.apiKey = apiKey;
         
@@ -108,7 +91,33 @@
     return self;
 }
 
-- (void)viewDidLoad {
+- (void)initClassData
+{
+    _filterArr          = [[NSArray alloc]init];
+    _currentPage        = 1;
+    self.isNormalSearch = false;
+    self.keyword        = nil;
+}
+
+- (void)initGDSearchAndMapViewObj
+{
+    //_lazy load
+    if (_mapView_GD == nil) {
+        _mapView_GD                     = [[MAMapView alloc]init];
+        _mapView_GD.delegate            = self;
+        _mapView_GD.showsUserLocation   = YES;
+    }
+    
+    //_lazy load
+    if (_searchObj_GD == nil) {
+        _searchObj_GD           = [[AMapSearchAPI alloc]initWithSearchKey:self.apiKey Delegate:self];
+        _searchObj_GD.language  = AMapSearchLanguage_zh_CN;
+    }
+    
+}
+
+- (void)viewDidLoad
+{
     [super viewDidLoad];
     
     [self setSearchDisplayController];
@@ -118,25 +127,6 @@
     //[self openLocationServices];
 
     [KVNProgress show];
-}
-
-- (void)initGDSearchAndMapViewObj {
-    //_lazy load
-    if (_mapView_GD == nil) {
-        _mapView_GD = [[MAMapView alloc]init];
-        _mapView_GD.delegate = self;
-        
-        //打开系统定位功能。但回调使用高德地图SDK，与系统坐标系有偏移
-        _mapView_GD.showsUserLocation = YES;
-    }
-    
-    //_lazy load
-    if (_searchObj_GD == nil) {
-        _searchObj_GD = [[AMapSearchAPI alloc]initWithSearchKey:self.apiKey Delegate:self];
-        //设置搜索返回语言，可选中／英文
-        _searchObj_GD.language = AMapSearchLanguage_zh_CN;
-    }
-    
 }
 
 - (void)setSearchDisplayController {
@@ -173,10 +163,7 @@
 }
 
 /**
- *  @author Chan
- *
  *  @brief  反编码获得地名
- *
  *  @param location 坐标
  */
 - (void)getReGeocode:(CLLocationCoordinate2D)location {
@@ -190,10 +177,7 @@
 }
 
 /**
- *  @author Chan
- *
  *  @brief  获得输入提示
- *
  *  @param keyword 输入的关键词
  */
 - (void)getInputTips:(NSString *)keyword {
@@ -211,10 +195,7 @@
 
 
 /**
- *  @author Chan
- *
  *  @brief  根据keyword跟地理坐标返回搜索内容
- *
  *  @param keyword      搜索内容
  *  @param coordinate2D 用户坐标
  */
@@ -259,7 +240,7 @@
     _poiRequest.location = [AMapGeoPoint locationWithLatitude:coordinate2D.latitude
                                                     longitude:coordinate2D.longitude];
     _poiRequest.types = @[@"餐饮服务",@"汽车销售",@"购物服务",@"生活服务",@"体育休闲服务",@"医疗保健服务",@"住宿服务",@"风景名胜",@"商务住宅",@"科教文化服务",@"公司企业",@"政府机构及社会团体",@"金融保险服务"];
-   // _poiRequest.keywords = @"餐饮服务|汽车服务|汽车销售|汽车维修|摩托车服务|购物服务|生活服务|体育休闲服务|医疗保健服务|住宿服务|风景名胜|商务住宅|政府机构及社会团体|科教文化服务|交通设施服务|金融保险服务|公司企业|道路附属设施|地名地址信息";
+    // _poiRequest.keywords = @"餐饮服务|汽车服务|汽车销售|汽车维修|摩托车服务|购物服务|生活服务|体育休闲服务|医疗保健服务|住宿服务|风景名胜|商务住宅|政府机构及社会团体|科教文化服务|交通设施服务|金融保险服务|公司企业|道路附属设施|地名地址信息";
     _poiRequest.offset = 50;
     _poiRequest.page = _currentPage;
     _poiRequest.requireExtension = YES;
@@ -447,7 +428,6 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     
     if (tableView == _locationSearchDisplayController.searchResultsTableView) {
-        NSInteger row = indexPath.row;
         AMapTip *tip = _filterArr[indexPath.row];
         [self getGeocode:tip.district adcode:tip.adcode];
     }else if(tableView == self.tableView) {
@@ -477,7 +457,7 @@
         [self getInputTips:searchString];
     }
     
-    //不在此刷新，因为数据可能不出来
+    //不在此刷新，因为数据会慢一步出来
     return NO;
 }
 
@@ -535,13 +515,8 @@
 - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations {
     
     CLLocation *location = [locations firstObject];
-    CLLocationCoordinate2D coordinate = location.coordinate;
-    
-    //NSLog(@"locates success");
     
     NSLog(@"I was in the systemLocation latitude : %f ,longitude : %f", location.coordinate.latitude, location.coordinate.longitude);
-    
-    //[_locationManager stopUpdatingLocation];
     
     //获取经纬度成功
     //则进行地理反编码提取所在地点信息
@@ -556,67 +531,10 @@
     [KVNProgress dismiss];
 }
 
-#pragma mark - 使用系统功能进行地理反编码处理
-/**
- *  @author Chan
- *
- *  @brief  根据定位获得的经纬度进行反地理编码获得地名
- *
- *  @param location 经纬度
- *
- *  @return 地名
- */
-- (void)getAddressByLocation:(CLLocation *)location {
-    [_geocoder reverseGeocodeLocation:location
-                    completionHandler:^(NSArray *placemarks, NSError *error) {
-                        //
-                        CLPlacemark *placemark = placemarks[0];
-                        NSLog(@"-----this in locaitonMapview------%@",placemark.addressDictionary);
-                        NSLog(@"%@  %@  %@  %@",placemark.thoroughfare, placemark.subAdministrativeArea,placemark.subThoroughfare,placemark.postalCode);
-                        if (placemarks.count == 0)
-                            [KVNProgress showErrorWithStatus:[NSString stringWithFormat:@"%@",NSLocalizedString(@"无法定位到所在地点", @"I don't know where are you")]];
-                        else
-                            [self getPlacemark:placemarks[0]];
-                    }];
-}
-
-- (void)getPlacemark:(CLPlacemark *)placemark {
-    _city = placemark.addressDictionary[@"City"];
-    [self getInputTips:_city];
-}
-
-/**
- *  @author Chan
- *
- *  @brief  根据地名获取经纬度信息－－－－暂不需用到
- *
- *  @param address 详细地名：省－区－市－街道
- */
-- (void)getCoordinateByAddress:(NSString *)address {
-    [_geocoder geocodeAddressString:address
-                  completionHandler:^(NSArray *placemarks, NSError *error) {
-                      for (CLPlacemark *placemark in placemarks) {
-                          if (placemarks.count ==  0) {
-                              NSLog(@"fuck");
-                          }
-                          NSLog(@"%@",placemark.addressDictionary);
-                          NSLog(@"%@  %@  %@  %@",placemark.thoroughfare, placemark.subAdministrativeArea,placemark.subThoroughfare,placemark.postalCode);
-                      }
-                  }];
-    
-    
-}
-
-
-
-
 //---------------------------暂不进行定位模糊修正，按照高德SDK标准用法使用--------------------------------------------
 
 /**
- *  @author Chan
- *
  *  @brief  根据地名获得坐标
- *
  *  @param address 详细地址
  *  @param adcode    城市编码
  */

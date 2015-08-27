@@ -43,7 +43,7 @@
 
 - (void)initMapView
 {
-    [MAMapServices sharedServices].apiKey = GDMAP_SDK_API_KEY;
+    [MAMapServices sharedServices].apiKey = API_KEY;
     
     self.mapView = [[MAMapView alloc]init];
     self.mapView.frame = self.view.bounds;

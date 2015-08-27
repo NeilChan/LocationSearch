@@ -8,6 +8,6 @@
 
 #ifdef __OBJC__
 
-#define GDMAP_SDK_API_KEY @"f5acc5b718535cfa7b542b06352613c3"
+#define API_KEY @"f5acc5b718535cfa7b542b06352613c3"
 
 #endif
