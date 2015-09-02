@@ -8,8 +8,13 @@
 
 #import <UIKit/UIKit.h>
 
-@interface MainViewController : UITableViewController
+@class MapViewBaseController, POIViewController;
 
+@interface MainViewController : UIViewController
+
+@property (nonatomic, strong)MapViewBaseController *mapVC;
+
+@property (nonatomic, strong)POIViewController *poiVC;
 
 @end
 

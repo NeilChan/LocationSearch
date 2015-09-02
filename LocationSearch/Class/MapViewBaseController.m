@@ -8,9 +8,15 @@
 
 #import "MapViewBaseController.h"
 #import <MAMapKit/MAMapKit.h>
+#import "OpenSetting.h"
 
-@interface MapViewBaseController ()<MAMapViewDelegate,AMapSearchDelegate>
-
+@interface MapViewBaseController ()<MAMapViewDelegate,AMapSearchDelegate,CLLocationManagerDelegate>
+{
+    //Component
+    CLLocationManager *_locationManager;
+    UIAlertView *_alertView;
+    
+}
 @end
 
 @implementation MapViewBaseController
@@ -21,12 +27,24 @@
 @synthesize locations = _locations;
 @synthesize search = _search;
 
-#pragma mark - Initialization
+#pragma mark - Initialize
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self)
+    {
+        [self checkLocationServices];
+    }
+    return self;
+}
 
 - (instancetype)initWithCCLocation:(CLLocation *)location
 {
-    if (self = [super init]) {
-        self.location = [[CLLocation alloc]initWithLatitude:location.coordinate.latitude longitude:location.coordinate.longitude];
+    if (self = [super init])
+    {
+        self.location = [[CLLocation alloc]initWithLatitude:location.coordinate.latitude
+                                                  longitude:location.coordinate.longitude];
     }
     
     return self;
@@ -34,7 +52,8 @@
 
 - (instancetype)initWithCCLocations:(NSArray *)locations
 {
-    if (self = [super init]) {
+    if (self = [super init])
+    {
         self.locations = locations;
     }
     
@@ -93,6 +112,8 @@
         [self initAnnotation];
     }else if(self.locations) {
         [self initAnnotations];
+    }else {
+        _mapView.showsUserLocation = YES;
     }
 }
 
@@ -124,6 +145,26 @@
     return nil;
 }
 
+- (void)mapView:(MAMapView *)mapView didUpdateUserLocation:(MAUserLocation *)userLocation updatingLocation:(BOOL)updatingLocation
+{
+    
+    if (userLocation)
+    {
+        NSLog(@"I was in the mapView_GD latitude : %f ,longitude : %f", userLocation.coordinate.latitude, userLocation.coordinate.longitude);
+        
+        //定不到位
+        if (userLocation.coordinate.longitude == 0 && userLocation.coordinate.latitude) return;
+        
+        self.location = userLocation.location;
+        
+        _mapView.showsUserLocation = NO;
+    }
+    else
+    {
+        NSLog(@"%s: Class = %@, errInfo= !userLocation", __func__, [self class]);
+    }
+}
+
 #pragma mark - AMapSearchDelegate
 
 - (void)searchRequest:(id)request didFailWithError:(NSError *)error
@@ -131,7 +172,65 @@
     NSLog(@"%s: searchRequest = %@, errInfo= %@", __func__, [request class], error);
 }
 
-#pragma mark - Life Cycle
+#pragma mark - UIAlertViewDelegate
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
+    switch (buttonIndex) {
+        case 0:
+            [alertView removeFromSuperview];
+            //[self.navigationController popViewControllerAnimated:YES];
+            break;
+        case 1:
+            //[self.navigationController popViewControllerAnimated:YES];
+            [OpenSetting openSetting];
+            break;
+        default:
+            break;
+    }
+}
+
+#pragma mark - Check Location Services Enable
+/**
+ *  @brief  设置定位管理器，检测设备定位功能是否可用
+ */
+- (void)checkLocationServices {
+    _locationManager = [[CLLocationManager alloc]init];
+    
+    if (![CLLocationManager locationServicesEnabled]) {
+        [self showLocationServiceEnableWarner:[NSString stringWithFormat:@"%@",NSLocalizedString(@"位置服务未开启，请到设置->隐私->定位中打开", @"Location Services haven't open. Please open it by these steps:Setting->Privacy->Location Services")]];
+        return;
+    }
+    if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusDenied) {
+        [self showLocationServiceEnableWarner:[NSString stringWithFormat:@"%@",NSLocalizedString(@"位置服务未开启，设置后才可正常使用", @"Location Services haven't open. ")]];
+    }
+}
+
+- (void)showLocationServiceEnableWarner: (NSString *)message{
+    _alertView = [[UIAlertView alloc]initWithTitle:[NSString stringWithFormat:@"%@",NSLocalizedString(@"提醒", @"Remind")]
+                                           message:message
+                                          delegate:self
+                                 cancelButtonTitle:[NSString stringWithFormat:@"%@",NSLocalizedString(@"稍后", @"OK")]
+                                 otherButtonTitles:[NSString stringWithFormat:@"%@",NSLocalizedString(@"去设置",@"Open it now")],nil];
+    [_alertView show];
+}
+
+#pragma mark - Custom Property Setters
+
+- (void)setLocation:(CLLocation *)location
+{
+    _location = location;
+    
+    [self initAnnotation];
+}
+
+- (void)setLocations:(NSArray *)locations
+{
+    _locations = locations;
+    
+    [self initAnnotations];
+}
+
+#pragma mark - Dealloc
 
 - (void)didReceiveMemoryWarning
 {
@@ -156,24 +255,5 @@
 
     self.mapView = nil;
 }
-//
-//#pragma mark - Custom Property Setters
-//
-//- (void)setLocation:(CLLocation *)location
-//{
-//    _location = location;
-//    
-//    [self initAnnotation];
-//    
-//    [self.mapView addAnnotation:self.annotation];
-//}
-//
-//- (void)setLocations:(NSArray *)locations
-//{
-//    _locations = locations;
-//    
-//    [self initAnnotations];
-//    
-//    [self.mapView addAnnotations:[self.annotations copy]];
-//}
+
 @end

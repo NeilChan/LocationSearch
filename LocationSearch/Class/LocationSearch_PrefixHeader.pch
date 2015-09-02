@@ -10,4 +10,7 @@
 
 #define API_KEY @"f5acc5b718535cfa7b542b06352613c3"
 
+#define IPHONE_HEIGHT   [UIScreen mainScreen].bounds.size.height
+#define IPHONE_WIGHT    [UIScreen mainScreen].bounds.size.width
+
 #endif

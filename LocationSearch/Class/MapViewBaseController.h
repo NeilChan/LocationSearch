@@ -21,6 +21,8 @@
 @property(nonatomic, strong)MAPointAnnotation *annotation;
 @property(nonatomic, strong)NSMutableArray *annotations;
 
+@property(nonatomic, assign)CLLocationCoordinate2D currentCoordinate;
+
 - (instancetype)initWithCCLocation:(CLLocation *)location;
 - (instancetype)initWithCCLocations:(NSArray *)locations;
 - (void)initAnnotation;

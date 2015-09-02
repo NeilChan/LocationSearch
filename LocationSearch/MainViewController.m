@@ -8,11 +8,13 @@
 
 #import "MainViewController.h"
 #import "MapViewBaseController.h"
-#import "SearchResultListViewController.h"
+#import "POIViewController.h"
 
 @interface MainViewController ()
 {
+    NSString *_currentCity;
     
+    CLLocationCoordinate2D  _currCoordinate2D;
     
 }
 @end
@@ -20,10 +22,71 @@
 @implementation MainViewController
 
 #pragma mark - Life Cycle
+
+- (void)loadView
+{
+    UIScrollView *scrollView = [[UIScrollView alloc]initWithFrame:[UIScreen mainScreen].bounds];
+    scrollView.contentSize                    = CGSizeMake(IPHONE_WIGHT, IPHONE_HEIGHT + 64);
+    scrollView.showsHorizontalScrollIndicator = NO;
+    scrollView.showsVerticalScrollIndicator   = NO;
+    self.view = scrollView;
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
     
+    [self initSubView];
+}
+
+- (void)initSubView
+{
+    self.view.backgroundColor = [UIColor orangeColor];
+    
+    [self initMapVC];
+    
+    [self initPoiVC];
+}
+
+- (void)initMapVC
+{
+    self.mapVC.view.frame = CGRectMake(0, 0, IPHONE_WIGHT, IPHONE_HEIGHT * 2 / 5);
+    
+    [self.view addSubview:self.mapVC.view];
+    
+    [self addChildViewController:self.mapVC];
+}
+
+- (void)initPoiVC
+{
+    CGFloat originY_mapVC = CGRectGetMaxY(self.mapVC.view.frame);
+    
+    self.poiVC.view.frame = CGRectMake(0, originY_mapVC, IPHONE_WIGHT, IPHONE_HEIGHT * 3 / 5 - 44);
+    
+    [self.view addSubview:self.poiVC.view];
+    
+    [self addChildViewController:self.mapVC];
+}
+
+#pragma mark - Lazy Load
+
+- (MapViewBaseController *)mapVC
+{
+    if (!_mapVC)
+    {
+        _mapVC = [[MapViewBaseController alloc]init];
+    }
+    return _mapVC;
+}
+
+- (POIViewController *)poiVC
+{
+    if (!_poiVC)
+    {
+        _poiVC = [[POIViewController alloc]initWithStyle:UITableViewStyleGrouped];
+    }
+    
+    return _poiVC;
 }
 
 - (void)didReceiveMemoryWarning
